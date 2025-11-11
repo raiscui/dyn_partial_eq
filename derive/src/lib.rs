@@ -13,8 +13,26 @@ pub fn dyn_partial_eq_macro_derive(input: TokenStream) -> TokenStream {
 
 fn impl_dyn_partial_eq(ast: &syn::DeriveInput) -> TokenStream {
   let name = &ast.ident;
+  let generics = &ast.generics;
+  let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+  // 为泛型参数添加 'static 约束
+  let mut where_clause = where_clause
+    .cloned()
+    .unwrap_or_else(|| parse_quote! { where });
+
+  // 为每个类型参数添加 'static 约束
+  for param in &generics.params {
+    if let syn::GenericParam::Type(type_param) = param {
+      let ident = &type_param.ident;
+      where_clause
+        .predicates
+        .push(parse_quote! { #ident: 'static });
+    }
+  }
+
   let gen = quote! {
-      impl DynPartialEq for #name {
+      impl #impl_generics DynPartialEq for #name #ty_generics #where_clause {
           fn as_any(&self) -> &dyn core::any::Any {
             self
           }
@@ -25,7 +43,6 @@ fn impl_dyn_partial_eq(ast: &syn::DeriveInput) -> TokenStream {
   };
   gen.into()
 }
-
 
 #[proc_macro_attribute]
 pub fn dyn_partial_eq(_: TokenStream, input: TokenStream) -> TokenStream {
@@ -53,5 +70,6 @@ pub fn dyn_partial_eq(_: TokenStream, input: TokenStream) -> TokenStream {
         self.box_eq(other.as_any())
       }
     }
-  }).into()
+  })
+  .into()
 }

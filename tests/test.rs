@@ -48,7 +48,6 @@ fn test_dyn_nested_partial_eq() {
   struct Child(usize);
   impl ChildTrait for Child {}
 
-
   let c1_a: Box<dyn ChildTrait> = Box::new(Child(1));
   let c1_b: Box<dyn ChildTrait> = Box::new(Child(1));
   let c2: Box<dyn ChildTrait> = Box::new(Child(2));
